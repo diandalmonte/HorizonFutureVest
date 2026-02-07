@@ -4,9 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Persistence.Repositories
+namespace Application.DTOs.Entities
 {
-    public class CountryRepository
+    public class BaseEntityDto<TId>
     {
+        public TId? Id { get; set; }
     }
 }

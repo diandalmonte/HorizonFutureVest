@@ -3,17 +3,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Persistence.Common;
+using Persistence.Entidades;
 
-namespace Persistence.Entidades
+namespace Application.DTOs.Entities
 {
-    public class MacroIndicator : BaseEntity<int>, IMacroIndicator
+    public class SimulationIndicatorDto : BaseEntityDto<int>
     {
         public required string Name { get; set; }
         public required decimal Weight { get; set; }
         public required bool IsBetterHigh { get; set; }
 
-        //Navigation property
-        public virtual ICollection<SimulationIndicator> Simulations { get; set; } = new List<SimulationIndicator>();
+
+        public required int MacroIndicatorId { get; set; }
+        public MacroIndicator? MacroIndicator { get; set; }
     }
 }
