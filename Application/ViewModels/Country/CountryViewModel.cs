@@ -4,10 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Application.ViewModels
+namespace Application.ViewModels.Country
 {
-    public class BaseViewModel
+    public class CountryViewModel
     {
         public int Id { get; set; }
+        public string Name { get; set; }
+        public string IsoCode { get; set; }
     }
 }

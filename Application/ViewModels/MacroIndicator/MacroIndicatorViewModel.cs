@@ -4,11 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Application.ViewModels
+namespace Application.ViewModels.MacroIndicator
 {
-    public class DeleteViewModel : BaseViewModel
+    public class MacroIndicatorViewModel
     {
         public int Id { get; set; }
         public string Name { get; set; }
+        public decimal Weight { get; set; }
+        public bool IsBetterHigh { get; set; }
     }
 }

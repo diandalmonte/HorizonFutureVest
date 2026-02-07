@@ -1,5 +1,7 @@
 ﻿using Application.DTOs.Entities;
 using Application.Services;
+using Application.ViewModels;
+using Application.ViewModels.MacroIndicator;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HorizonFutureVest.Controllers
@@ -18,7 +20,7 @@ namespace HorizonFutureVest.Controllers
             var dtos = await _service.GetAll();
             var vms = dtos.Select(d => new MacroIndicatorViewModel
             {
-                Id = d.Id ?? 0,
+                Id = d.Id,
                 Name = d.Name,
                 Weight = d.Weight,
                 IsBetterHigh = d.IsBetterHigh
@@ -36,19 +38,26 @@ namespace HorizonFutureVest.Controllers
         {
             if (!ModelState.IsValid) return View("Save", vm);
 
-            await _service.Add(new MacroIndicatorDto { Name = vm.Name, Weight = vm.Weight, IsBetterHigh = vm.IsBetterHigh });
+            await _service.Add(new MacroIndicatorDto
+            {
+                Name = vm.Name,
+                Weight = vm.Weight,
+                IsBetterHigh = vm.IsBetterHigh
+            });
             return RedirectToAction("Index");
         }
 
         public async Task<IActionResult> Edit(int id)
         {
-            var dto = (await _service.GetAll()).FirstOrDefault(x => x.Id == id);
+            var all = await _service.GetAll();
+            var dto = all.FirstOrDefault(x => x.Id == id);
+
             if (dto == null) return RedirectToAction("Index");
 
             ViewBag.EditMode = true;
             return View("Save", new SaveMacroIndicatorViewModel
             {
-                Id = dto.Id ?? 0,
+                Id = dto.Id,
                 Name = dto.Name,
                 Weight = dto.Weight,
                 IsBetterHigh = dto.IsBetterHigh
@@ -63,15 +72,25 @@ namespace HorizonFutureVest.Controllers
                 ViewBag.EditMode = true;
                 return View("Save", vm);
             }
-            await _service.Update(new MacroIndicatorDto { Id = vm.Id, Name = vm.Name, Weight = vm.Weight, IsBetterHigh = vm.IsBetterHigh });
+
+            await _service.Update(new MacroIndicatorDto
+            {
+                Id = vm.Id,
+                Name = vm.Name,
+                Weight = vm.Weight,
+                IsBetterHigh = vm.IsBetterHigh
+            });
             return RedirectToAction("Index");
         }
 
         public async Task<IActionResult> Delete(int id)
         {
-            var dto = (await _service.GetAll()).FirstOrDefault(x => x.Id == id);
+            var all = await _service.GetAll();
+            var dto = all.FirstOrDefault(x => x.Id == id);
+
             if (dto == null) return RedirectToAction("Index");
-            return View(new DeleteViewModel { Id = dto.Id ?? 0, Name = dto.Name });
+
+            return View(new DeleteViewModel { Id = dto.Id, Name = $"Registro {dto.Id}" });
         }
 
         [HttpPost]

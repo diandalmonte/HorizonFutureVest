@@ -6,27 +6,27 @@ using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 using Persistence.Entidades;
+using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 
 namespace Persistence.Contexts
-{
-    public class AppContext
+{ 
+    public class AppContext : DbContext
     {
-        public class AppContext : DbContext
+        public AppContext(DbContextOptions<AppContext> options) : base(options) { }
+
+        public DbSet<Country> Countries { get; set; }
+        public DbSet<CountryIndicator> CountryIndicators { get; set; }
+        public DbSet<MacroIndicator> MacroIndicators { get; set; }
+        public DbSet<SimulationIndicator> SimulationIndicators { get; set; }
+        public DbSet<AppSettings>  AppSettings { get; set; }
+
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            public AppContext(DbContextOptions<AppContext> options) : base(options) { }
+            base.OnModelCreating(modelBuilder);
 
-            public DbSet<Country> Countries { get; set; }
-            public DbSet<CountryIndicator> CountryIndicators { get; set; }
-            public DbSet<MacroIndicator> MacroIndicators { get; set; }
-            public DbSet<SimulationIndicator> SimulationIndicators { get; set; }
-            public DbSet<AppSettings>  AppSettings { get; set; }
-
-
-            protected override void OnModelCreating(ModelBuilder modelBuilder)
-            {
-                base.OnModelCreating(modelBuilder);
-
-                modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-            }
+            modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         }
+    }
 }

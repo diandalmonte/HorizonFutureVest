@@ -1,39 +1,47 @@
 ﻿using Application.DTOs.Entities;
 using Application.Services;
+using Application.ViewModels;
+using Application.Exceptions;
 using Microsoft.AspNetCore.Mvc;
+using Application.ViewModels.SimulationIndicator;
 
 namespace HorizonFutureVest.Controllers
 {
-    public class SimulationIndicatorController : Controller
+    public class SimulationController : Controller
     {
-        private readonly SimulationService _simService;
-        private readonly MacroIndicatorService _macroService;
+        private readonly SimulationService _simulationService;
+        private readonly MacroIndicatorService _macroIndicatorService;
+        private readonly RankingService _rankingService;
+        private readonly CountryIndicatorService _countryIndicatorService;
 
-        public SimulationIndicatorController(SimulationService simService, MacroIndicatorService macroService)
+        public SimulationController(SimulationService simulationService, MacroIndicatorService macroIndicatorService, RankingService rankingService, CountryIndicatorService countryIndicatorService)
         {
-            _simService = simService;
-            _macroService = macroService;
+            _simulationService = simulationService;
+            _macroIndicatorService = macroIndicatorService;
+            _rankingService = rankingService;
+            _countryIndicatorService = countryIndicatorService;
         }
+
+        // --- CRUD DE INDICADORES DE SIMULACIÓN ---
 
         public async Task<IActionResult> Index()
         {
-            var dtos = await _simService.GetAll();
-            var macros = (await _macroService.GetAll()).ToDictionary(k => k.Id, v => v.Name); // Cache para mapeo
-
+            var dtos = await _simulationService.GetAll();
             var vms = dtos.Select(d => new SimulationIndicatorViewModel
             {
-                Id = d.Id ?? 0,
+                Id = d.Id,
                 Name = d.Name,
                 Weight = d.Weight,
                 IsBetterHigh = d.IsBetterHigh,
-                MacroIndicatorName = macros.ContainsKey(d.MacroIndicatorId) ? macros[d.MacroIndicatorId] : "N/A"
+                // Asumiendo que el DTO viene con la propiedad de navegación o buscamos el nombre
+                MacroIndicatorName = d.MacroIndicator != null ? d.MacroIndicator.Name : "ID: " + d.MacroIndicatorId
             }).ToList();
             return View(vms);
         }
 
         public async Task<IActionResult> Create()
         {
-            ViewBag.MacroIndicators = await _macroService.GetAll();
+            ViewBag.MacroIndicators = await _macroIndicatorService.GetAll();
             return View("Save", new SaveSimulationIndicatorViewModel());
         }
 
@@ -42,31 +50,34 @@ namespace HorizonFutureVest.Controllers
         {
             if (!ModelState.IsValid)
             {
-                ViewBag.MacroIndicators = await _macroService.GetAll();
+                ViewBag.MacroIndicators = await _macroIndicatorService.GetAll();
                 return View("Save", vm);
             }
 
-            await _simService.Add(new SimulationIndicatorDto
+            await _simulationService.Add(new SimulationIndicatorDto
             {
                 Name = vm.Name,
                 Weight = vm.Weight,
                 IsBetterHigh = vm.IsBetterHigh,
-                MacroIndicatorId = vm.MacroIndicatorId ?? 0
+                MacroIndicatorId = vm.MacroIndicatorId
             });
             return RedirectToAction("Index");
         }
 
         public async Task<IActionResult> Edit(int id)
         {
-            var dto = (await _simService.GetAll()).FirstOrDefault(x => x.Id == id);
+            // Simulación GetById
+            var all = await _simulationService.GetAll();
+            var dto = all.FirstOrDefault(x => x.Id == id);
+
             if (dto == null) return RedirectToAction("Index");
 
             ViewBag.EditMode = true;
-            ViewBag.MacroIndicators = await _macroService.GetAll();
+            ViewBag.MacroIndicators = await _macroIndicatorService.GetAll();
 
             return View("Save", new SaveSimulationIndicatorViewModel
             {
-                Id = dto.Id ?? 0,
+                Id = dto.Id,
                 Name = dto.Name,
                 Weight = dto.Weight,
                 IsBetterHigh = dto.IsBetterHigh,
@@ -80,34 +91,64 @@ namespace HorizonFutureVest.Controllers
             if (!ModelState.IsValid)
             {
                 ViewBag.EditMode = true;
-                ViewBag.MacroIndicators = await _macroService.GetAll();
+                ViewBag.MacroIndicators = await _macroIndicatorService.GetAll();
                 return View("Save", vm);
             }
 
-            await _simService.Update(new SimulationIndicatorDto
+            await _simulationService.Update(new SimulationIndicatorDto
             {
                 Id = vm.Id,
                 Name = vm.Name,
                 Weight = vm.Weight,
                 IsBetterHigh = vm.IsBetterHigh,
-                MacroIndicatorId = vm.MacroIndicatorId ?? 0
+                MacroIndicatorId = vm.MacroIndicatorId
             });
             return RedirectToAction("Index");
         }
 
-
         public async Task<IActionResult> Delete(int id)
         {
-            var dto = (await _simService.GetAll()).FirstOrDefault(x => x.Id == id);
+            // Simulación GetById
+            var all = await _simulationService.GetAll();
+            var dto = all.FirstOrDefault(x => x.Id == id);
             if (dto == null) return RedirectToAction("Index");
-            return View(new DeleteViewModel { Id = dto.Id ?? 0, Name = dto.Name });
+
+            return View(new DeleteViewModel { Id = dto.Id, Name = dto.Name });
         }
 
         [HttpPost]
         public async Task<IActionResult> Delete(DeleteViewModel vm)
         {
-            await _simService.Delete(vm.Id);
+            await _simulationService.Delete(vm.Id);
             return RedirectToAction("Index");
+        }
+
+        // --- RANKING SIMULADO ---
+
+        public async Task<IActionResult> GetSimulatedRanking(int? year)
+        {
+            var vm = new RankingHomeViewModel();
+
+            // Obtener años disponibles
+            var indicators = await _countryIndicatorService.GetAll();
+            vm.AvailableYears = indicators.Select(i => i.Year).Distinct().OrderByDescending(y => y).ToList();
+
+            if (year.HasValue)
+            {
+                vm.SelectedYear = year.Value;
+                try
+                {
+                    // isSimulation = true
+                    var results = await _rankingService.GenerateCountryRanking(year.Value, true);
+                    vm.RankingResults = results.ToList();
+                }
+                catch (InsufficientEligibleCountries ex)
+                {
+                    ModelState.AddModelError("", ex.Message);
+                }
+            }
+
+            return View(vm);
         }
     }
 }

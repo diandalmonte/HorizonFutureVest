@@ -1,14 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Application.DTOs.Entities;
+using Application.Services;
+using Application.ViewModels;
+using Application.ViewModels.Country;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HorizonFutureVest.Controllers
 {
-    using Application.DTOs.Entities;
-    using Application.Services;
-    using HorizonFutureVest.Application.Dtos;
-    using HorizonFutureVest.Application.Services;
-    using HorizonFutureVest.Models.ViewModels;
-    using Microsoft.AspNetCore.Mvc;
-
     public class CountryController : Controller
     {
         private readonly CountryService _countryService;
@@ -23,7 +20,7 @@ namespace HorizonFutureVest.Controllers
             var dtos = await _countryService.GetAll();
             var vms = dtos.Select(d => new CountryViewModel
             {
-                Id = d.Id ?? 0,
+                Id = d.Id,
                 Name = d.Name,
                 IsoCode = d.IsoCode
             }).ToList();
@@ -39,19 +36,37 @@ namespace HorizonFutureVest.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(SaveCountryViewModel vm)
         {
-            if (!ModelState.IsValid) return View("Save", vm);
+            if (!ModelState.IsValid)
+            {
+                return View("Save", vm);
+            }
 
-            await _countryService.Add(new CountryDto { Name = vm.Name, IsoCode = vm.IsoCode });
+            var dto = new CountryDto
+            {
+                Name = vm.Name,
+                IsoCode = vm.IsoCode
+            };
+
+            await _countryService.Add(dto);
             return RedirectToAction("Index");
         }
 
         public async Task<IActionResult> Edit(int id)
         {
-            var dto = (await _countryService.GetAll()).FirstOrDefault(x => x.Id == id); // Asumiendo GetAll si no hay GetById
+            var all = await _countryService.GetAll();
+            var dto = all.FirstOrDefault(x => x.Id == id);
+
             if (dto == null) return RedirectToAction("Index");
 
+            var vm = new SaveCountryViewModel
+            {
+                Id = dto.Id,
+                Name = dto.Name,
+                IsoCode = dto.IsoCode
+            };
+
             ViewBag.EditMode = true;
-            return View("Save", new SaveCountryViewModel { Id = dto.Id ?? 0, Name = dto.Name, IsoCode = dto.IsoCode });
+            return View("Save", vm);
         }
 
         [HttpPost]
@@ -63,15 +78,25 @@ namespace HorizonFutureVest.Controllers
                 return View("Save", vm);
             }
 
-            await _countryService.Update(new CountryDto { Id = vm.Id, Name = vm.Name, IsoCode = vm.IsoCode });
+            var dto = new CountryDto
+            {
+                Id = vm.Id,
+                Name = vm.Name,
+                IsoCode = vm.IsoCode
+            };
+
+            await _countryService.Update(dto);
             return RedirectToAction("Index");
         }
 
         public async Task<IActionResult> Delete(int id)
         {
-            var dto = (await _countryService.GetAll()).FirstOrDefault(x => x.Id == id);
+            var all = await _countryService.GetAll();
+            var dto = all.FirstOrDefault(x => x.Id == id);
+
             if (dto == null) return RedirectToAction("Index");
-            return View(new DeleteViewModel { Id = dto.Id ?? 0, Name = dto.Name });
+
+            return View(new DeleteViewModel { Id = dto.Id, Name = $"Registro {dto.Id}" });
         }
 
         [HttpPost]
